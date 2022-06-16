@@ -3,8 +3,10 @@
 <p align="center">
    <img src="https://user-images.githubusercontent.com/22751572/173998854-f9be1dc5-4687-456f-b601-c5e2a5ccc66d.png" width="500">
 <p>
-<img src="https://user-images.githubusercontent.com/22751572/173998868-3eff79d1-9187-40be-bfa7-f353652dc115.png" width="500">
-
+<p align="center">
+   <img src="https://user-images.githubusercontent.com/22751572/173998868-3eff79d1-9187-40be-bfa7-f353652dc115.png" width="500">
+<p>
+   
 ## _To Debug_
 You need to install the following:
 
