@@ -1,5 +1,8 @@
-## _To Debug_
+# Screenshots
+![image1](https://user-images.githubusercontent.com/22751572/173998854-f9be1dc5-4687-456f-b601-c5e2a5ccc66d.png)
+![image2](https://user-images.githubusercontent.com/22751572/173998868-3eff79d1-9187-40be-bfa7-f353652dc115.png)
 
+## _To Debug_
 You need to install the following:
 
 - ✨ [Java 8] - Java 8 is required, because higher versions are not supported with maven projects.
@@ -9,7 +12,6 @@ I had problems with Eclipse and NetBeans to create a maven project.
 - ✨ [SceneBuilder] - It helps you in creating graphical user interfaces.
 
 ## Setting up the environment
-
 Here you can find all the information to develop your first extension: https://github.com/sirjonasxx/G-ExtensionStore/wiki/Native-Extension
 
 **Good luck !**
