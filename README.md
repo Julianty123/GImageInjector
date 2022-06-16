@@ -1,6 +1,5 @@
 # Screenshots
-<img src="https://github.com/favicon.ico" width="500">
-
+<img src="[https://github.com/favicon.ico](https://user-images.githubusercontent.com/22751572/173998854-f9be1dc5-4687-456f-b601-c5e2a5ccc66d.png)" width="300">
 ![image1](https://user-images.githubusercontent.com/22751572/173998854-f9be1dc5-4687-456f-b601-c5e2a5ccc66d.png)
 ![image2](https://user-images.githubusercontent.com/22751572/173998868-3eff79d1-9187-40be-bfa7-f353652dc115.png)
 
