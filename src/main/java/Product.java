@@ -1,9 +1,8 @@
-// This constructor class is very important to be able of create the tableView
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 
-// Clase constructora necesaria para la creacion del TableView
+// This constructor class is very important to be able of create the tableView
 public class Product {
     private SimpleStringProperty productImageUrl;
     private SimpleIntegerProperty productFurniID;
