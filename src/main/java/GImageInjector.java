@@ -3,6 +3,7 @@ import gearth.extensions.ExtensionInfo;
 import gearth.extensions.parsers.HFloorItem;
 import gearth.protocol.HMessage;
 import gearth.protocol.HPacket;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -14,7 +15,11 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.image.ImageView;
 import java.awt.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -23,39 +28,50 @@ import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.ResourceBundle;
-import java.util.TreeMap;
 
 @ExtensionInfo(
         Title = "GImageInjector",
         Description = "Put backgrounds only in the client :)",
-        Version = "1.0.0",
+        Version = "1.0.2",
         Author = "Julianty"
 )
 
 public class GImageInjector extends ExtensionForm implements Initializable {
+    public ListView<ImageView> listView;
+    public TextField textImage;
+    public Button buttonAdd, buttonErase;
+    public Slider sliderOffSetX, sliderOffSetY, sliderOffSetZ;
+    public Label labelOffSetX, labelOffSetY, labelOffSetZ;
     public TableView <Product> tableView;
     public TableColumn <Product, String> columnImageUrl;
     public TableColumn <Product, Integer> columnFurnitureId;
     public TableColumn <Product, String> columnOffSetX;
     public TableColumn <Product, String> columnOffSetY;
     public TableColumn <Product, String> columnOffSetZ;
-
     public ObservableList<Product> dataObservableList = FXCollections.observableArrayList();
 
-    // For avoid to do the manually process...
-    // Go for example to https://www.habbo.es/gamedata/furnidata_json/1 then press Ctrl + F, type "ads_background" and copy the id
-    private static final HashMap<String, Integer> host_adsbackground = new HashMap<>();
+    public static final String dir;
     static {
-        host_adsbackground.put("game-es.habbo.com", 3704);
-        host_adsbackground.put("game-br.habbo.com", 3755);
-        host_adsbackground.put("game-tr.habbo.com", 3770);
-        host_adsbackground.put("game-us.habbo.com", 3996);
-        host_adsbackground.put("game-de.habbo.com", 3707);
-        host_adsbackground.put("game-fi.habbo.com", 9509);
-        host_adsbackground.put("game-fr.habbo.com", 3708);
-        host_adsbackground.put("game-it.habbo.com", 3821);
-        host_adsbackground.put("game-nl.habbo.com", 3715);
-        host_adsbackground.put("game-s2.habbo.com", 3787);
+        try {
+            dir = new File(GImageInjector.class.getProtectionDomain().
+                    getCodeSource().getLocation().toURI().getPath()).getParent(); // + "/cache"
+        } catch (URISyntaxException e) { throw new RuntimeException(e); }
+    }
+
+    // This is for avoid to do it the manually ...
+    // Go for example to https://www.habbo.es/gamedata/furnidata_json/1 then press Ctrl + F, type "ads_background" and copy the id
+    private static final HashMap<String, Integer> host_adsBackground = new HashMap<>();
+    static {
+        host_adsBackground.put("game-es.habbo.com", 3704);
+        host_adsBackground.put("game-br.habbo.com", 3755);
+        host_adsBackground.put("game-tr.habbo.com", 3770);
+        host_adsBackground.put("game-us.habbo.com", 3996);
+        host_adsBackground.put("game-de.habbo.com", 3707);
+        host_adsBackground.put("game-fi.habbo.com", 9509);
+        host_adsBackground.put("game-fr.habbo.com", 3708);
+        host_adsBackground.put("game-it.habbo.com", 3821);
+        host_adsBackground.put("game-nl.habbo.com", 3715);
+        host_adsBackground.put("game-s2.habbo.com", 3787);
     }
 
     @Override // Importante, sin esto el TableView no funciona
@@ -66,20 +82,49 @@ public class GImageInjector extends ExtensionForm implements Initializable {
         columnOffSetY.setCellValueFactory(new PropertyValueFactory<>("productOffSetY"));
         columnOffSetZ.setCellValueFactory(new PropertyValueFactory<>("productOffSetZ"));
         tableView.setItems(dataObservableList);
+
+        File folder = new File(dir + "/GImageInjector"); // "\\" + GImageInjector.class.getName()
+        if (!folder.exists()) {
+            if (folder.mkdirs()) System.out.println("Folder successfully created");
+            else System.err.println("The folder could not be created.");
+        }
+        else System.out.println("The folder already exists");
+
+        File file = new File(folder, "url_images.txt");    // System.out.println(file);
+        if (file.exists()) {
+            new Thread(()->{
+                try {
+                    FileReader fileReader = new FileReader(file);
+                    BufferedReader bufferedReader = new BufferedReader(fileReader);
+
+                    listView.setDisable(true);
+                    for(String line: bufferedReader.lines().toArray(String[]::new)){
+                        URL url = new URL(line);    // System.out.println(url);
+                        ImageView image = new ImageView(url.toExternalForm());
+                        image.setFitHeight(150);    image.setFitWidth(150);
+
+                        mapImageToUrl.put(image, url);
+                        listView.getItems().add(image);
+                        Platform.runLater(()-> listView.scrollTo(image));
+                    }
+                    bufferedReader.close(); fileReader.close();
+                }
+                catch (IOException ignored) {}
+                finally {
+                    listView.setDisable(false);
+                }
+            }).start();
+        }
+        else System.out.println("File doesn't exist: " + file.getAbsolutePath());
     }
 
     // Look NFT hr-3322-1347.hd-600-8.ch-4025-106-105.lg-4066-107.sh-3089-1425.he-4258.ea-3822-106.cc-3572-1423-106
-
-    public TextField textImage;
-    public Button buttonAdd, buttonErase;
-    public Slider sliderOffSetX, sliderOffSetY, sliderOffSetZ;
-    public Label labelOffSetX, labelOffSetY, labelOffSetZ;
-
+    public int uniqueId = -1;
     public int currentFurnitureId = -1;
     public String selectedUrlTable;
     public int selectedIdTable;
     public double selectedOffsetXTable, selectedOffsetYTable, selectedOffsetZTable;
-
+    public HashMap<ImageView, URL> mapImageToUrl = new HashMap<>();
     DecimalFormat df = new DecimalFormat("#.00");
 
 
@@ -96,17 +141,19 @@ public class GImageInjector extends ExtensionForm implements Initializable {
         tableView.getItems().clear();
     }
 
-    int uniqueId = -1;
-
     // When the extension is installed or connected
     @Override
     protected void initExtension(){
         // Using lambda expresion to detect the host
         onConnect((host, port, APIVersion, versionClient, client) -> {
-            if(host_adsbackground.containsKey(host))
-                uniqueId = host_adsbackground.get(host);
+            if(host_adsBackground.containsKey(host))
+                uniqueId = host_adsBackground.get(host);
         });
 
+        listView.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            URL url = mapImageToUrl.get(newValue);
+            textImage.setText(url.toString());
+        });
         sliderOffSetX.valueProperty().addListener(new ChangeListener<Number>() {
             @Override
             public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
@@ -167,11 +214,11 @@ public class GImageInjector extends ExtensionForm implements Initializable {
 
         buttonErase.setOnAction(event -> {
             try{
-                int furni_id = tableView.getSelectionModel().getSelectedItem().getProductFurniID();
+                int furnitureId = tableView.getSelectionModel().getSelectedItem().getProductFurniID();
                 tableView.getItems().remove(tableView.getSelectionModel().getSelectedIndex());
 
                 // You get a black screen if you don't delete the furni id in descending order (5, 4, 3...)                         // whatever number
-                sendToClient(new HPacket("ObjectRemove", HMessage.Direction.TOCLIENT, String.valueOf(furni_id), false, 12345, 0));
+                sendToClient(new HPacket("ObjectRemove", HMessage.Direction.TOCLIENT, String.valueOf(furnitureId), false, 12345, 0));
             } catch (Exception ignored) {}
         });
 
@@ -195,9 +242,7 @@ public class GImageInjector extends ExtensionForm implements Initializable {
                 for (HFloorItem hFloorItem: HFloorItem.parse(hMessage.getPacket())){
                     System.out.println(Arrays.toString(hFloorItem.getStuff()));
                 }
-            }catch (Exception e) {
-                e.printStackTrace();
-            }
+            }catch (Exception e) { e.printStackTrace(); }
         });
     }
 
