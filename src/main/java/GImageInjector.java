@@ -1,6 +1,5 @@
 import gearth.extensions.ExtensionForm;
 import gearth.extensions.ExtensionInfo;
-import gearth.extensions.parsers.HFloorItem;
 import gearth.protocol.HMessage;
 import gearth.protocol.HPacket;
 import javafx.application.Platform;
@@ -25,7 +24,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.text.DecimalFormat;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.ResourceBundle;
 
@@ -58,6 +56,15 @@ public class GImageInjector extends ExtensionForm implements Initializable {
         } catch (URISyntaxException e) { throw new RuntimeException(e); }
     }
 
+    // Look NFT hr-3322-1347.hd-600-8.ch-4025-106-105.lg-4066-107.sh-3089-1425.he-4258.ea-3822-106.cc-3572-1423-106
+    public int uniqueId = -1;
+    public int currentFurnitureId = -1;
+    public String selectedUrlTable;
+    public int selectedIdTable;
+    public double selectedOffsetXTable, selectedOffsetYTable, selectedOffsetZTable;
+    public HashMap<ImageView, URL> mapImageToUrl = new HashMap<>();
+    DecimalFormat df = new DecimalFormat("#.00");
+
     // This is for avoid to do it the manually ...
     // Go for example to https://www.habbo.es/gamedata/furnidata_json/1 then press Ctrl + F, type "ads_background" and copy the id
     private static final HashMap<String, Integer> host_adsBackground = new HashMap<>();
@@ -74,7 +81,7 @@ public class GImageInjector extends ExtensionForm implements Initializable {
         host_adsBackground.put("game-s2.habbo.com", 3787);
     }
 
-    @Override // Importante, sin esto el TableView no funciona
+    @Override // Important, without this the TableView does not work
     public void initialize(URL location, ResourceBundle resources) {
         columnImageUrl.setCellValueFactory(new PropertyValueFactory<>("productImageUrl")); // Atributos de la clase Product!
         columnFurnitureId.setCellValueFactory(new PropertyValueFactory<>("productFurniID"));
@@ -118,16 +125,6 @@ public class GImageInjector extends ExtensionForm implements Initializable {
         else System.out.println("File doesn't exist: " + file.getAbsolutePath());
     }
 
-    // Look NFT hr-3322-1347.hd-600-8.ch-4025-106-105.lg-4066-107.sh-3089-1425.he-4258.ea-3822-106.cc-3572-1423-106
-    public int uniqueId = -1;
-    public int currentFurnitureId = -1;
-    public String selectedUrlTable;
-    public int selectedIdTable;
-    public double selectedOffsetXTable, selectedOffsetYTable, selectedOffsetZTable;
-    public HashMap<ImageView, URL> mapImageToUrl = new HashMap<>();
-    DecimalFormat df = new DecimalFormat("#.00");
-
-
     @Override
     protected void onHide() {
         currentFurnitureId = -1; // There are no furni with negative id
@@ -135,8 +132,8 @@ public class GImageInjector extends ExtensionForm implements Initializable {
         // Loop for delete all images in the client
         for (int j = tableView.getItems().size() - 1; j >= 0; j--) {
             try { Thread.sleep(560); } catch (InterruptedException ignored) {}
-            int furni_id = tableView.getItems().get(j).getProductFurniID();
-            sendToClient(new HPacket("ObjectRemove", HMessage.Direction.TOCLIENT, String.valueOf(furni_id), false, 12345, 0));
+            int furnitureId = tableView.getItems().get(j).getProductFurniID();
+            sendToClient(new HPacket("ObjectRemove", HMessage.Direction.TOCLIENT, String.valueOf(furnitureId), false, 12345, 0));
         }
         tableView.getItems().clear();
     }
@@ -144,22 +141,10 @@ public class GImageInjector extends ExtensionForm implements Initializable {
     // When the extension is installed or connected
     @Override
     protected void initExtension(){
-        // Using lambda expresion to detect the host
+        // Using lambda expression to detect the host
         onConnect((host, port, APIVersion, versionClient, client) -> {
             if(host_adsBackground.containsKey(host))
                 uniqueId = host_adsBackground.get(host);
-        });
-
-        listView.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            URL url = mapImageToUrl.get(newValue);
-            textImage.setText(url.toString());
-        });
-        sliderOffSetX.valueProperty().addListener(new ChangeListener<Number>() {
-            @Override
-            public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
-                setPosition();
-                labelOffSetX.setText("offset X: " + df.format(sliderOffSetX.getValue()));
-            }
         });
 
         /* Useful to use listeners in a boolean
@@ -169,14 +154,28 @@ public class GImageInjector extends ExtensionForm implements Initializable {
             System.out.println("newValue: " + newValue);
         });*/
 
-        sliderOffSetY.valueProperty().addListener((observable, oldValue, newValue) -> {
-            setPosition();
-            labelOffSetY.setText("offset Y: " + df.format(sliderOffSetY.getValue()));
+        listView.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            URL url = mapImageToUrl.get(newValue);
+            textImage.setText(url.toString());
         });
 
+        // -1300, 1300
+        sliderOffSetX.valueProperty().addListener(new ChangeListener<Number>() {
+            @Override
+            public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+                setLocation();
+                labelOffSetX.setText("offset X: " + df.format(sliderOffSetX.getValue()));
+            }
+        });
+        // -1300, 1300
+        sliderOffSetY.valueProperty().addListener((observable, oldValue, newValue) -> {
+            setLocation();
+            labelOffSetY.setText("offset Y: " + df.format(sliderOffSetY.getValue()));
+        });
+        // 8500, 11000
         sliderOffSetZ.valueProperty().addListener((observable, oldValue, newValue) -> {
-            setPosition();
-            labelOffSetZ.setText("offset Z: " + df.format(sliderOffSetZ.getValue())); //8700 or less in any rooms wtf
+            setLocation();
+            labelOffSetZ.setText("offset Z: " + df.format(sliderOffSetZ.getValue()));
         });
 
         buttonAdd.setOnAction(e -> {
@@ -194,7 +193,7 @@ public class GImageInjector extends ExtensionForm implements Initializable {
                     String.valueOf(sliderOffSetX.getValue()), -1, 1, 12345, false, false)); // 1234 its your userid or whatever, dont care
             tableView.getItems().add(new Product(textImage.getText(), currentFurnitureId, sliderOffSetX.getValue(),
                     sliderOffSetY.getValue(), sliderOffSetZ.getValue()));
-            tableView.getSelectionModel().selectLast(); // Selecciona el ultimo item de la tabla
+            tableView.getSelectionModel().selectLast(); // Select the last item in the table
         });
 
         // Runs when an item is added or removed from the tableView
@@ -217,7 +216,7 @@ public class GImageInjector extends ExtensionForm implements Initializable {
                 int furnitureId = tableView.getSelectionModel().getSelectedItem().getProductFurniID();
                 tableView.getItems().remove(tableView.getSelectionModel().getSelectedIndex());
 
-                // You get a black screen if you don't delete the furni id in descending order (5, 4, 3...)                         // whatever number
+                // You get a black screen if you don't delete the furnitureId in descending order (5, 4, 3...)                         // whatever number
                 sendToClient(new HPacket("ObjectRemove", HMessage.Direction.TOCLIENT, String.valueOf(furnitureId), false, 12345, 0));
             } catch (Exception ignored) {}
         });
@@ -236,17 +235,9 @@ public class GImageInjector extends ExtensionForm implements Initializable {
         });
 
         // tableView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {});
-
-        intercept(HMessage.Direction.TOCLIENT, "Objects", hMessage -> {
-            try{
-                for (HFloorItem hFloorItem: HFloorItem.parse(hMessage.getPacket())){
-                    System.out.println(Arrays.toString(hFloorItem.getStuff()));
-                }
-            }catch (Exception e) { e.printStackTrace(); }
-        });
     }
 
-    public void setPosition(){
+    public void setLocation(){
         try{
             selectedUrlTable = tableView.getSelectionModel().getSelectedItem().getProductImageUrl();
             selectedIdTable = tableView.getSelectionModel().getSelectedItem().getProductFurniID();
@@ -270,7 +261,3 @@ public class GImageInjector extends ExtensionForm implements Initializable {
         Desktop.getDesktop().browse(new URI("https://www.youtube.com/JuliantyScripting"));
     }
 }
-
-//choiceBox.getItems().addAll('l', 'r'); // Agrega varios items
-//choiceBox.getSelectionModel().select(0); // Inicializa con el valor en esa posicion
-//choiceBox.setValue("r"); // Otra forma de hacerlo, no recomendable en bases de datos
